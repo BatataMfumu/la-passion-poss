@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.posticket.app.databinding.ActivityMainBinding
@@ -72,16 +73,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun configureUi() {
         binding.quantityInput.setText("1")
-        binding.serverUrlInput.setText(syncManager.getServerUrl())
+        binding.syncInfoView.text = "Serveur cloud: ${syncManager.getServerUrl()}"
 
         configureModes()
         configurePayments()
-        configureTables()
-        configureQuickProducts()
         configureSync()
         configureKitchen()
 
-        binding.addProductBtn.setOnClickListener { addProductToCart() }
         binding.sampleBtn.setOnClickListener { loadSampleCart() }
         binding.clearCartBtn.setOnClickListener { clearCurrentOrder() }
         binding.printBtn.setOnClickListener { printCurrentInvoice() }
@@ -91,7 +89,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun configureKitchen() {
         binding.checkKitchenBtn.setOnClickListener {
-            val serverUrl = binding.serverUrlInput.text.toString().trim().trimEnd('/')
+            val serverUrl = currentServerUrl()
             if (serverUrl.isBlank()) {
                 Toast.makeText(this, "Configurez le serveur d'abord.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -149,47 +147,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun configureTables() {
-        binding.table1Btn.setOnClickListener { selectTable("T1") }
-        binding.table2Btn.setOnClickListener { selectTable("T2") }
-        binding.table3Btn.setOnClickListener { selectTable("T3") }
-        binding.table4Btn.setOnClickListener { selectTable("T4") }
-        binding.table5Btn.setOnClickListener { selectTable("T5") }
-        binding.table6Btn.setOnClickListener { selectTable("T6") }
-    }
-
-    private fun configureQuickProducts() {
-        binding.quickWaterBtn.setOnClickListener { addCatalogProductByIndex(0) }
-        binding.quickSodaBtn.setOnClickListener { addCatalogProductByIndex(1) }
-        binding.quickCoffeeBtn.setOnClickListener { addCatalogProductByIndex(2) }
-        binding.quickSandwichBtn.setOnClickListener { addCatalogProductByIndex(3) }
-        binding.quickJuiceBtn.setOnClickListener { addCatalogProductByIndex(4) }
-        binding.quickBreadBtn.setOnClickListener { addCatalogProductByIndex(5) }
-        refreshQuickProductLabels()
-    }
-
     private fun configureSync() {
-        binding.saveServerBtn.setOnClickListener {
-            val serverUrl = binding.serverUrlInput.text.toString().trim().trimEnd('/')
-            if (serverUrl.isBlank()) {
-                Toast.makeText(this, "Saisissez l'URL du serveur.", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            syncManager.saveServerUrl(serverUrl)
-            binding.syncStatusView.text = "Serveur enregistre: $serverUrl"
-        }
-
         binding.syncCatalogBtn.setOnClickListener {
-            val serverUrl = binding.serverUrlInput.text.toString().trim().trimEnd('/')
+            val serverUrl = currentServerUrl()
             if (serverUrl.isBlank()) {
-                Toast.makeText(this, "Saisissez l'URL du serveur.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Aucun serveur configure.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             binding.syncStatusView.text = "Synchronisation en cours..."
             Thread {
                 runCatching {
-                    syncManager.saveServerUrl(serverUrl)
                     syncManager.pullBootstrap(serverUrl)
                 }.onSuccess { bootstrap ->
                     establishmentName = bootstrap.establishmentName.ifBlank { "La Passion" }
@@ -200,27 +168,25 @@ class MainActivity : AppCompatActivity() {
                     quickProducts.clear()
                     bootstrap.products
                         .filter { it.active }
-                        .takeLast(6)
                         .mapTo(quickProducts) {
                             CatalogProduct(
                                 name = it.name,
                                 unitPrice = it.price,
                                 category = productCategoryFromServer(it.category)
                             )
-                        }
+                    }
                     if (bootstrap.tables.isNotEmpty()) {
                         tables.clear()
-                        bootstrap.tables.take(6).forEach {
+                        bootstrap.tables.forEach {
                             tables += DiningTable(it.id, tableStatusFromServer(it.status))
                         }
-                    }
-                    while (tables.size < 6) {
-                        tables += DiningTable("T${tables.size + 1}", TableStatus.FREE)
+                    } else if (tables.isEmpty()) {
+                        tables += DiningTable("T1", TableStatus.FREE)
                     }
                     localStoreManager.saveCatalog(buildCatalogSnapshot())
                     runOnUiThread {
                         binding.syncStatusView.text = "Catalogue synchronise avec $serverUrl"
-                        refreshQuickProductLabels()
+                        binding.syncInfoView.text = "Serveur cloud: $serverUrl"
                         refreshUi()
                         flushPendingOrders()
                     }
@@ -241,32 +207,6 @@ class MainActivity : AppCompatActivity() {
         binding.syncPendingBtn.setOnClickListener {
             flushPendingOrders()
         }
-    }
-
-    private fun addProductToCart() {
-        val name = binding.productNameInput.text.toString().trim()
-        val unitPrice = binding.unitPriceInput.text.toString().trim().toLongOrNull()
-        val quantity = binding.quantityInput.text.toString().trim().toIntOrNull()
-
-        if (name.isBlank()) {
-            Toast.makeText(this, "Saisissez le nom du produit.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (unitPrice == null || unitPrice <= 0L) {
-            Toast.makeText(this, "Saisissez un prix valide.", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (quantity == null || quantity <= 0) {
-            Toast.makeText(this, "Saisissez une quantite valide.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        cartItems += CartItem(name, unitPrice, quantity, ProductCategory.MIXED)
-        binding.productNameInput.setText("")
-        binding.unitPriceInput.setText("")
-        binding.quantityInput.setText("1")
-        markCurrentTableOccupied()
-        refreshUi()
     }
 
     private fun addCatalogProductByIndex(index: Int) {
@@ -292,8 +232,6 @@ class MainActivity : AppCompatActivity() {
         cartItems += CartItem("Sandwich", 2500, 1, ProductCategory.FOOD)
         cartItems += CartItem("Cafe", 1000, 2, ProductCategory.DRINK)
         binding.discountInput.setText("500")
-        binding.productNameInput.setText("")
-        binding.unitPriceInput.setText("")
         binding.quantityInput.setText("1")
         markCurrentTableOccupied()
         refreshUi()
@@ -301,8 +239,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun clearCurrentOrder() {
         cartItems.clear()
-        binding.productNameInput.setText("")
-        binding.unitPriceInput.setText("")
         binding.quantityInput.setText("1")
         binding.discountInput.setText("")
         if (selectedMode == ServiceMode.RESTAURANT) {
@@ -337,7 +273,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun pushOrderToServer(payload: JSONObject) {
-        val serverUrl = binding.serverUrlInput.text.toString().trim().trimEnd('/')
+        val serverUrl = currentServerUrl()
         if (serverUrl.isBlank()) {
             binding.syncStatusView.text = "Commande locale uniquement. Aucun serveur configure."
             return
@@ -387,6 +323,7 @@ class MainActivity : AppCompatActivity() {
         binding.kitchenCard.visibility = if (selectedMode == ServiceMode.RESTAURANT) View.VISIBLE else View.GONE
         binding.kitchenStatusView.text = latestKitchenStatusText
 
+        renderQuickProductButtons()
         refreshTableSummary()
         refreshOrderSummary()
         refreshStats()
@@ -398,17 +335,7 @@ class MainActivity : AppCompatActivity() {
         val occupied = tables.count { it.status == TableStatus.OCCUPIED }
         val reserved = tables.count { it.status == TableStatus.RESERVED }
         binding.tableSummaryView.text = "Libres: $free   Occupees: $occupied   Reservees: $reserved"
-        updateTableButton(binding.table1Btn, tables[0])
-        updateTableButton(binding.table2Btn, tables[1])
-        updateTableButton(binding.table3Btn, tables[2])
-        updateTableButton(binding.table4Btn, tables[3])
-        updateTableButton(binding.table5Btn, tables[4])
-        updateTableButton(binding.table6Btn, tables[5])
-    }
-
-    private fun updateTableButton(button: Button, table: DiningTable) {
-        val selectedMarker = if (table.id == selectedTableId) " *" else ""
-        button.text = "${table.id}\n${table.status.label}$selectedMarker"
+        renderTableButtons()
     }
 
     private fun refreshOrderSummary() {
@@ -469,15 +396,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }.joinToString("\n")
         }
-    }
-
-    private fun refreshQuickProductLabels() {
-        binding.quickWaterBtn.text = quickProducts.getOrNull(0)?.buttonLabel() ?: "Produit 1"
-        binding.quickSodaBtn.text = quickProducts.getOrNull(1)?.buttonLabel() ?: "Produit 2"
-        binding.quickCoffeeBtn.text = quickProducts.getOrNull(2)?.buttonLabel() ?: "Produit 3"
-        binding.quickSandwichBtn.text = quickProducts.getOrNull(3)?.buttonLabel() ?: "Produit 4"
-        binding.quickJuiceBtn.text = quickProducts.getOrNull(4)?.buttonLabel() ?: "Produit 5"
-        binding.quickBreadBtn.text = quickProducts.getOrNull(5)?.buttonLabel() ?: "Produit 6"
     }
 
     private fun buildInvoiceLines(): List<String> {
@@ -606,7 +524,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun flushPendingOrders() {
-        val serverUrl = binding.serverUrlInput.text.toString().trim().trimEnd('/')
+        val serverUrl = currentServerUrl()
         if (serverUrl.isBlank()) {
             binding.syncStatusView.text = "Aucun serveur configure pour la reprise hors ligne."
             return
@@ -792,6 +710,74 @@ class MainActivity : AppCompatActivity() {
         selectedTableId = tableId
         refreshUi()
     }
+
+    private fun renderQuickProductButtons() {
+        renderButtonGrid(
+            container = binding.productsGridLayout,
+            items = quickProducts.map { product ->
+                product.buttonLabel() to { addCatalogProduct(product) }
+            }
+        )
+    }
+
+    private fun renderTableButtons() {
+        renderButtonGrid(
+            container = binding.tablesGridLayout,
+            items = tables.map { table ->
+                val selectedMarker = if (table.id == selectedTableId) " *" else ""
+                "${table.id}\n${table.status.label}$selectedMarker" to { selectTable(table.id) }
+            }
+        )
+    }
+
+    private fun renderButtonGrid(
+        container: LinearLayout,
+        items: List<Pair<String, () -> Unit>>
+    ) {
+        container.removeAllViews()
+        items.chunked(2).forEachIndexed { rowIndex, chunk ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = if (rowIndex == 0) 0 else dp(10)
+                }
+            }
+
+            chunk.forEachIndexed { index, (label, action) ->
+                val button = Button(this).apply {
+                    text = label
+                    setOnClickListener { action() }
+                    layoutParams = LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    ).apply {
+                        marginEnd = if (index == 0 && chunk.size > 1) dp(6) else 0
+                        marginStart = if (index == 1) dp(6) else 0
+                    }
+                }
+                row.addView(button)
+            }
+
+            if (chunk.size == 1) {
+                row.addView(View(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        0,
+                        0,
+                        1f
+                    )
+                })
+            }
+            container.addView(row)
+        }
+    }
+
+    private fun currentServerUrl(): String = syncManager.getServerUrl().trim().trimEnd('/')
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun markCurrentTableOccupied() {
         if (selectedMode == ServiceMode.RESTAURANT) {
