@@ -160,5 +160,8 @@ function escapeHtml(text) {
 }
 
 document.getElementById("refreshKitchenBtn").addEventListener("click", loadKitchen);
+document.getElementById("backToAdminBtn").addEventListener("click", () => {
+  window.location.href = "/admin/";
+});
 loadKitchen();
 setInterval(loadKitchen, 5000);
