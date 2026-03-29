@@ -77,9 +77,9 @@ function createPostgresStore() {
         [JSON.stringify(defaults.settings)]
       );
 
-      await replacePayloadTable("products", defaults.products);
-      await replacePayloadTable("dining_tables", defaults.tables);
-      await replacePayloadTable("app_users", defaults.users);
+      await seedPayloadTableIfEmpty("products", defaults.products);
+      await seedPayloadTableIfEmpty("dining_tables", defaults.tables);
+      await seedPayloadTableIfEmpty("app_users", defaults.users);
     },
     async getBootstrapData() {
       const snapshot = await getSnapshot();
@@ -315,6 +315,14 @@ function createPostgresStore() {
     } finally {
       client.release();
     }
+  }
+
+  async function seedPayloadTableIfEmpty(tableName, items) {
+    const result = await pool.query(`select count(*)::int as count from ${tableName}`);
+    if ((result.rows[0]?.count || 0) > 0) {
+      return;
+    }
+    await replacePayloadTable(tableName, items);
   }
 
   async function replaceOrders(orders) {
