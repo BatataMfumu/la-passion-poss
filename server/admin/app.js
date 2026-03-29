@@ -4,6 +4,7 @@ const state = {
   tables: [],
   orders: [],
   stats: null,
+  pollHandle: null,
 };
 
 const api = {
@@ -147,6 +148,19 @@ function renderOrders() {
     : `<div class="order-card">Aucune commande synchronisee.</div>`;
 }
 
+async function refreshOrdersAndStats() {
+  try {
+    const [orders, stats] = await Promise.all([api.get("/api/orders"), api.get("/api/stats")]);
+    state.orders = orders;
+    state.stats = stats;
+    renderStats();
+    renderOrders();
+    setStatus("Connecte");
+  } catch (error) {
+    setStatus(`Erreur: ${error.message}`);
+  }
+}
+
 function wireEvents() {
   document.getElementById("refreshBtn").addEventListener("click", bootstrap);
   document.getElementById("openKitchenBtn").addEventListener("click", () => {
@@ -167,7 +181,7 @@ function wireEvents() {
     const price = Number(document.getElementById("newProductPrice").value || 0);
     const category = document.getElementById("newProductCategory").value;
     if (!name || price <= 0) return;
-    state.products.push({
+    state.products.unshift({
       id: crypto.randomUUID(),
       name,
       price,
@@ -203,6 +217,13 @@ function wireEvents() {
   });
 }
 
+function startPolling() {
+  if (state.pollHandle) {
+    clearInterval(state.pollHandle);
+  }
+  state.pollHandle = setInterval(refreshOrdersAndStats, 8000);
+}
+
 function setStatus(text) {
   document.getElementById("statusBadge").textContent = text;
 }
@@ -217,3 +238,4 @@ function escapeHtml(text) {
 
 wireEvents();
 bootstrap();
+startPolling();

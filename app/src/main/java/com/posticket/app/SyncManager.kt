@@ -41,6 +41,9 @@ class SyncManager(context: Context) {
             establishmentAddress = json.optJSONObject("settings")
                 ?.optString("address", "L'avenue des aviation Q/ Gare-centrale C/ Gombe")
                 ?: "L'avenue des aviation Q/ Gare-centrale C/ Gombe",
+            terraceHappyHourPercent = json.optJSONObject("settings")
+                ?.optInt("terraceHappyHourPercent", 10)
+                ?: 10,
             products = json.optJSONArray("products").toProducts(),
             tables = json.optJSONArray("tables").toTables()
         )
@@ -117,6 +120,7 @@ class SyncManager(context: Context) {
 data class BootstrapPayload(
     val establishmentName: String,
     val establishmentAddress: String,
+    val terraceHappyHourPercent: Int,
     val products: List<RemoteProduct>,
     val tables: List<RemoteTable>
 )

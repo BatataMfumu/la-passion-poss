@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private var selectedPayment = PaymentMethod.CASH
     private var selectedTableId = "T1"
     private var latestKitchenStatusText = "Aucune verification cuisine pour le moment."
+    private var terraceHappyHourPercent = 10
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -195,9 +196,11 @@ class MainActivity : AppCompatActivity() {
                     establishmentAddress = bootstrap.establishmentAddress.ifBlank {
                         "L'avenue des aviation Q/ Gare-centrale C/ Gombe"
                     }
+                    terraceHappyHourPercent = bootstrap.terraceHappyHourPercent.coerceAtLeast(0)
+                    quickProducts.clear()
                     bootstrap.products
                         .filter { it.active }
-                        .take(6)
+                        .takeLast(6)
                         .mapTo(quickProducts) {
                             CatalogProduct(
                                 name = it.name,
@@ -376,7 +379,7 @@ class MainActivity : AppCompatActivity() {
             ServiceMode.TERRACE -> "Service terrasse actif. Boissons rapides et happy hour automatique."
         }
         binding.happyHourView.text = if (selectedMode == ServiceMode.TERRACE) {
-            "Happy hour terrasse: -10% sur les boissons."
+            "Happy hour terrasse: -${terraceHappyHourPercent}% sur les boissons."
         } else {
             "Mode restaurant: suivi par table et commande complete."
         }
@@ -636,6 +639,7 @@ class MainActivity : AppCompatActivity() {
         localStoreManager.loadCatalog()?.let { catalog ->
             establishmentName = catalog.optString("establishmentName", establishmentName)
             establishmentAddress = catalog.optString("establishmentAddress", establishmentAddress)
+            terraceHappyHourPercent = catalog.optInt("terraceHappyHourPercent", terraceHappyHourPercent)
             val products = catalog.optJSONArray("products") ?: JSONArray()
             if (products.length() > 0) {
                 quickProducts.clear()
@@ -726,6 +730,7 @@ class MainActivity : AppCompatActivity() {
             mapOf(
                 "establishmentName" to establishmentName,
                 "establishmentAddress" to establishmentAddress,
+                "terraceHappyHourPercent" to terraceHappyHourPercent,
                 "products" to products,
                 "tables" to tablesArray
             )
@@ -767,7 +772,7 @@ class MainActivity : AppCompatActivity() {
     private fun terraceHappyHourDiscount(): Long {
         if (selectedMode != ServiceMode.TERRACE) return 0L
         val drinksTotal = cartItems.filter { it.category == ProductCategory.DRINK }.sumOf { it.lineTotal }
-        return (drinksTotal * 10L) / 100L
+        return (drinksTotal * terraceHappyHourPercent.toLong()) / 100L
     }
 
     private fun currentDiscount(): Long {
