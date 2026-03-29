@@ -9,24 +9,44 @@
   <body>
     <div class="shell">
       <aside class="sidebar">
-        <h1>La Passion</h1>
-        <p>Ecran cuisine PC</p>
-        <button id="refreshKitchenBtn">Actualiser</button>
+        <div class="brand-block">
+          <h1>La Passion</h1>
+          <p>Ecran cuisine PC</p>
+        </div>
+
+        <div class="sidebar-actions">
+          <button id="refreshKitchenBtn">Actualiser</button>
+        </div>
+
+        <div class="sidebar-note">
+          <strong id="kitchenStatusBadge">Cuisine connectee</strong>
+          <span>Les commandes restaurant arrivent ici apres impression et synchronisation POS.</span>
+        </div>
       </aside>
+
       <main class="content">
         <section class="hero">
           <div>
-            <h2>Suivi cuisine</h2>
-            <p>Commandes restaurant en attente, en preparation et prêtes.</p>
+            <p class="eyebrow">Cuisine</p>
+            <h2>Production en temps reel</h2>
+            <p>Suivez les commandes depuis la salle jusqu'au service.</p>
           </div>
-          <div id="kitchenStatusBadge" class="badge">Cuisine connectee</div>
+          <div class="hero-card">
+            <span>Derniere actualisation</span>
+            <strong id="kitchenRefreshView">-</strong>
+          </div>
         </section>
-        <section class="cards" id="kitchenStatsCards"></section>
+
+        <section class="stats-grid" id="kitchenStatsCards"></section>
+
         <section class="panel">
           <div class="panel-head">
-            <h3>Commandes cuisine</h3>
+            <div>
+              <h3>Colonnes cuisine</h3>
+              <p>Faites avancer les commandes pour notifier le POS restaurant.</p>
+            </div>
           </div>
-          <div id="kitchenOrders" class="orders"></div>
+          <div id="kitchenColumns" class="kitchen-layout"></div>
         </section>
       </main>
     </div>

@@ -25,6 +25,10 @@
         android:usesCleartextTraffic="true"
         android:use32bitAbi="true">
         <activity
+            android:name=".SyncActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait">

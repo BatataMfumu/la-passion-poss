@@ -9,28 +9,79 @@
   <body>
     <div class="shell">
       <aside class="sidebar">
-        <h1>La Passion</h1>
-        <p>Dashboard administrateur PC</p>
-        <button id="refreshBtn">Actualiser</button>
-        <button id="openKitchenBtn">Ecran cuisine</button>
+        <div class="brand-block">
+          <h1>La Passion</h1>
+          <p>Pilotage admin PC</p>
+        </div>
+
+        <div class="sidebar-actions">
+          <button id="refreshBtn">Actualiser</button>
+          <button id="openKitchenBtn">Ecran cuisine</button>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a href="#dashboardPanel">Dashboard</a>
+          <a href="#settingsPanel">Parametres</a>
+          <a href="#productsPanel">Produits</a>
+          <a href="#tablesPanel">Tables</a>
+          <a href="#ordersPanel">Ventes</a>
+        </nav>
+
+        <div class="sidebar-note">
+          <strong id="statusBadge">Connecte</strong>
+          <span>Base centrale dynamique synchronisee avec le POS.</span>
+        </div>
       </aside>
 
       <main class="content">
         <section class="hero">
           <div>
-            <h2>Administration centrale</h2>
-            <p>Produits, tables, statistiques et commandes synchronisees.</p>
+            <p class="eyebrow">Tableau de bord</p>
+            <h2>Exploitation restaurant, terrasse et cuisine</h2>
+            <p>
+              Toutes les modifications faites ici doivent se retrouver sur le POS apres synchronisation.
+            </p>
           </div>
-          <div id="statusBadge" class="badge">Connecte</div>
+          <div class="hero-card">
+            <span>Derniere actualisation</span>
+            <strong id="lastRefreshView">-</strong>
+          </div>
         </section>
 
-        <section class="cards" id="statsCards"></section>
+        <section class="stats-grid" id="statsCards"></section>
 
-        <section class="panel">
+        <section id="dashboardPanel" class="dashboard-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Vue terrasse</h3>
+            </div>
+            <div id="terraceOverview" class="stack-list"></div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Top ventes</h3>
+            </div>
+            <div id="topProductsList" class="stack-list"></div>
+          </article>
+
+          <article class="panel panel-wide">
+            <div class="panel-head">
+              <h3>Suivi des services</h3>
+            </div>
+            <div id="serviceFlowCards" class="mini-grid"></div>
+          </article>
+        </section>
+
+        <section id="settingsPanel" class="panel">
           <div class="panel-head">
-            <h3>Parametres</h3>
+            <div>
+              <h3>Parametres</h3>
+              <p>Entete facture, happy hour et identite du point de vente.</p>
+            </div>
             <button id="saveSettingsBtn">Enregistrer</button>
           </div>
+
           <div class="grid two">
             <label>
               <span>Nom etablissement</span>
@@ -41,7 +92,8 @@
               <input id="establishmentAddress" type="text" />
             </label>
           </div>
-          <div class="grid two" style="margin-top:12px">
+
+          <div class="grid two top-gap">
             <label>
               <span>Happy hour terrasse (%)</span>
               <input id="happyHourPercent" type="number" min="0" />
@@ -49,11 +101,15 @@
           </div>
         </section>
 
-        <section class="panel">
+        <section id="productsPanel" class="panel">
           <div class="panel-head">
-            <h3>Produits</h3>
+            <div>
+              <h3>Produits</h3>
+              <p>Ajout, edition et suppression des produits synchronises sur le POS.</p>
+            </div>
             <button id="saveProductsBtn">Sauvegarder produits</button>
           </div>
+
           <div class="toolbar">
             <input id="newProductName" type="text" placeholder="Nom produit" />
             <input id="newProductPrice" type="number" placeholder="Prix" />
@@ -64,31 +120,51 @@
             </select>
             <button id="addProductBtn">Ajouter</button>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Prix</th>
-                <th>Categorie</th>
-                <th>Actif</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="productsTable"></tbody>
-          </table>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nom</th>
+                  <th>Prix</th>
+                  <th>Categorie</th>
+                  <th>Actif</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="productsTable"></tbody>
+            </table>
+          </div>
         </section>
 
-        <section class="panel">
+        <section id="tablesPanel" class="panel">
           <div class="panel-head">
-            <h3>Tables</h3>
+            <div>
+              <h3>Tables</h3>
+              <p>Le POS restaurant doit afficher exactement cette liste.</p>
+            </div>
             <button id="saveTablesBtn">Sauvegarder tables</button>
           </div>
+
+          <div class="toolbar compact">
+            <input id="newTableId" type="text" placeholder="Ex: T7" />
+            <select id="newTableStatus">
+              <option value="free">Libre</option>
+              <option value="occupied">Occupee</option>
+              <option value="reserved">Reservee</option>
+            </select>
+            <button id="addTableBtn">Ajouter une table</button>
+          </div>
+
           <div class="table-grid" id="tablesGrid"></div>
         </section>
 
-        <section class="panel">
+        <section id="ordersPanel" class="panel">
           <div class="panel-head">
-            <h3>Dernieres commandes</h3>
+            <div>
+              <h3>Commandes et ventes</h3>
+              <p>Suivi synchronise des ventes restaurant et terrasse.</p>
+            </div>
           </div>
           <div id="ordersList" class="orders"></div>
         </section>

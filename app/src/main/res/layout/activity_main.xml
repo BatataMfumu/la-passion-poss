@@ -14,24 +14,38 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/seed"
-            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:padding="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="La Passion"
-                android:textColor="@color/white"
-                android:textSize="28sp"
-                android:textStyle="bold" />
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <TextView
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="La Passion"
+                    android:textColor="@color/white"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Restaurant | Terrasse | Facturation"
+                    android:textColor="@color/champagne"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/openSyncPageBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="Restaurant • Terrasse • Facturation"
-                android:textColor="@color/champagne"
-                android:textSize="14sp" />
+                android:text="Sync" />
         </LinearLayout>
 
         <LinearLayout
@@ -83,64 +97,6 @@
         </LinearLayout>
 
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:background="@color/white"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Synchronisation PC Admin"
-                android:textColor="@color/ink"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/syncInfoView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/paper"
-                android:padding="14dp"
-                android:text="Synchronisation cloud active"
-                android:textColor="@color/ink"
-                android:textSize="15sp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/syncCatalogBtn"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Sync catalogue" />
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/syncPendingBtn"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="Synchroniser les ventes en attente" />
-
-            <TextView
-                android:id="@+id/syncStatusView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/paper"
-                android:padding="14dp"
-                android:textColor="@color/ink"
-                android:textSize="15sp" />
-        </LinearLayout>
-
-        <LinearLayout
             android:id="@+id/tablesCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -185,7 +141,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Notification cuisine"
+                android:text="Suivi cuisine"
                 android:textColor="@color/ink"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -219,7 +175,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Menu digital"
+                android:text="Catalogue synchronise"
                 android:textColor="@color/ink"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -369,28 +325,12 @@
                 android:textIsSelectable="true"
                 android:textSize="15sp" />
 
-            <LinearLayout
+            <Button
+                android:id="@+id/clearCartBtn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/sampleBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="6dp"
-                    android:layout_weight="1"
-                    android:text="Exemple" />
-
-                <Button
-                    android:id="@+id/clearCartBtn"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:layout_weight="1"
-                    android:text="Vider" />
-            </LinearLayout>
+                android:text="Vider" />
 
             <Button
                 android:id="@+id/printBtn"
