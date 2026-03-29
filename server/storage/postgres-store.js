@@ -126,6 +126,20 @@ function createPostgresStore() {
     async getProducts() {
       return (await getSnapshot()).products;
     },
+    async getUsers() {
+      return sanitizeUsers((await getSnapshot()).users);
+    },
+    async authenticateUser(name, pin) {
+      const result = await pool.query(
+        "select payload from app_users where lower(name) = lower($1) and pin = $2 limit 1",
+        [String(name || "").trim(), String(pin || "")]
+      );
+      if (!result.rows[0]) {
+        return null;
+      }
+      const { pin: hiddenPin, ...sanitized } = result.rows[0].payload || {};
+      return sanitized;
+    },
     async setProducts(products) {
       await replacePayloadTable("products", products);
     },

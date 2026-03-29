@@ -7,20 +7,43 @@
     <link rel="stylesheet" href="/admin/styles.css" />
   </head>
   <body>
+    <div id="loginOverlay" class="auth-overlay">
+      <div class="auth-card">
+        <img class="auth-logo" src="/admin/logo-la-passion.jpeg" alt="Logo La Passion" />
+        <h2>Connexion Administration</h2>
+        <p>Acces securise au dashboard, a la comptabilite et aux parametrages.</p>
+        <label>
+          <span>Utilisateur</span>
+          <select id="loginUserSelect"></select>
+        </label>
+        <label>
+          <span>PIN</span>
+          <input id="loginPinInput" type="password" inputmode="numeric" placeholder="PIN" />
+        </label>
+        <button id="loginBtn">Se connecter</button>
+        <div id="loginStatusView" class="auth-status">Chargez votre session pour continuer.</div>
+      </div>
+    </div>
+
     <div class="shell">
       <aside class="sidebar">
-        <div class="brand-block">
-          <h1>La Passion</h1>
-          <p>Pilotage admin PC</p>
+        <div class="brand-block brand-with-logo">
+          <img class="brand-logo" src="/admin/logo-la-passion.jpeg" alt="Logo La Passion" />
+          <div>
+            <h1>La Passion</h1>
+            <p>Pilotage admin PC</p>
+          </div>
         </div>
 
         <div class="sidebar-actions">
           <button id="refreshBtn">Actualiser</button>
           <button id="openKitchenBtn">Ecran cuisine</button>
+          <button id="logoutBtn" class="ghost-light">Deconnexion</button>
         </div>
 
         <nav class="sidebar-nav">
           <a href="#dashboardPanel">Dashboard</a>
+          <a href="#accountingPanel">Comptabilite</a>
           <a href="#settingsPanel">Parametres</a>
           <a href="#productsPanel">Produits</a>
           <a href="#tablesPanel">Tables</a>
@@ -29,7 +52,7 @@
 
         <div class="sidebar-note">
           <strong id="statusBadge">Connecte</strong>
-          <span>Base centrale dynamique synchronisee avec le POS.</span>
+          <span id="sessionBadge">Session admin non chargee.</span>
         </div>
       </aside>
 
@@ -45,6 +68,7 @@
           <div class="hero-card">
             <span>Derniere actualisation</span>
             <strong id="lastRefreshView">-</strong>
+            <small id="currencyBadge">Devise: CDF</small>
           </div>
         </section>
 
@@ -73,11 +97,30 @@
           </article>
         </section>
 
+        <section id="accountingPanel" class="panel">
+          <div class="panel-head">
+            <div>
+              <h3>Comptabilite</h3>
+              <p>Lecture rapide des encaissements, remises et mouvements par jour.</p>
+            </div>
+          </div>
+          <div class="dashboard-grid accounting-grid">
+            <div class="stack-list" id="accountingSummary"></div>
+            <div class="stack-list" id="paymentBreakdownList"></div>
+          </div>
+          <div class="panel-head top-gap">
+            <div>
+              <h3>Journal recent</h3>
+            </div>
+          </div>
+          <div id="dailyAccountingList" class="mini-grid"></div>
+        </section>
+
         <section id="settingsPanel" class="panel">
           <div class="panel-head">
             <div>
               <h3>Parametres</h3>
-              <p>Entete facture, happy hour et identite du point de vente.</p>
+              <p>Entete facture, happy hour, devise et identite du point de vente.</p>
             </div>
             <button id="saveSettingsBtn">Enregistrer</button>
           </div>
@@ -98,6 +141,12 @@
               <span>Happy hour terrasse (%)</span>
               <input id="happyHourPercent" type="number" min="0" />
             </label>
+            <label>
+              <span>Devise</span>
+              <select id="currencySelect">
+                <option value="CDF">CDF</option>
+              </select>
+            </label>
           </div>
         </section>
 
@@ -112,7 +161,7 @@
 
           <div class="toolbar">
             <input id="newProductName" type="text" placeholder="Nom produit" />
-            <input id="newProductPrice" type="number" placeholder="Prix" />
+            <input id="newProductPrice" type="number" placeholder="Prix en CDF" />
             <select id="newProductCategory">
               <option value="drink">Boisson</option>
               <option value="food">Plat</option>

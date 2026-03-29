@@ -39,6 +39,14 @@
                     android:text="Restaurant | Terrasse | Facturation"
                     android:textColor="@color/champagne"
                     android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/currentUserView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/champagne"
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <Button
@@ -312,17 +320,6 @@
                 android:background="@color/paper"
                 android:padding="14dp"
                 android:textColor="@color/ink"
-                android:textSize="15sp" />
-
-            <TextView
-                android:id="@+id/historyView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/paper"
-                android:padding="14dp"
-                android:textColor="@color/ink"
-                android:textIsSelectable="true"
                 android:textSize="15sp" />
 
             <Button

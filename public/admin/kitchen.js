@@ -15,6 +15,10 @@ const kitchenApi = {
   },
 };
 
+if (!window.localStorage.getItem("la_passion_admin_session")) {
+  window.location.href = "/admin/";
+}
+
 async function loadKitchen() {
   try {
     const orders = await kitchenApi.get("/api/orders");
@@ -144,7 +148,7 @@ function setKitchenStatus(text) {
 }
 
 function formatMoney(value) {
-  return `${Number(value || 0).toLocaleString("fr-FR")} XOF`;
+  return `${Number(value || 0).toLocaleString("fr-FR")} CDF`;
 }
 
 function escapeHtml(text) {

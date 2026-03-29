@@ -1,6 +1,7 @@
 package com.posticket.app
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -14,6 +15,7 @@ class SyncActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySyncBinding
     private lateinit var syncManager: SyncManager
     private lateinit var localStoreManager: LocalStoreManager
+    private lateinit var authManager: AuthManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,10 +24,16 @@ class SyncActivity : AppCompatActivity() {
 
         syncManager = SyncManager(this)
         localStoreManager = LocalStoreManager(this)
+        authManager = AuthManager(this)
 
         binding.backToPosBtn.setOnClickListener { finish() }
         binding.syncCatalogBtn.setOnClickListener { syncCatalog() }
         binding.syncPendingBtn.setOnClickListener { flushPendingOrders() }
+        binding.logoutBtn.setOnClickListener {
+            authManager.clear()
+            startActivity(Intent(this, LoginActivity::class.java))
+            finishAffinity()
+        }
 
         renderState("Pret pour la synchronisation cloud.")
     }
@@ -35,18 +43,19 @@ class SyncActivity : AppCompatActivity() {
         val productsCount = catalog?.optJSONArray("products")?.length() ?: 0
         val tablesCount = catalog?.optJSONArray("tables")?.length() ?: 0
         val pendingCount = localStoreManager.loadPendingOrders().length()
-        val historyCount = localStoreManager.loadHistory().length()
+        val currency = catalog?.optString("currency", "CDF") ?: "CDF"
 
         binding.cloudInfoView.text = listOf(
             "Cloud La Passion actif",
             "Serveur configure et centralise sur Vercel",
-            "Catalogue dynamique, tables et ventes relies a la base"
+            "Catalogue dynamique, tables et ventes relies a la base",
+            "Devise active: $currency"
         ).joinToString("\n")
+        binding.currentUserView.text = authManager.currentUserLabel()
 
         binding.localSummaryView.text = listOf(
             "Produits locaux: $productsCount",
             "Tables locales: $tablesCount",
-            "Commandes locales: $historyCount",
             "Ventes en attente: $pendingCount"
         ).joinToString("\n")
 
@@ -146,6 +155,7 @@ class SyncActivity : AppCompatActivity() {
             mapOf(
                 "establishmentName" to bootstrap.establishmentName,
                 "establishmentAddress" to bootstrap.establishmentAddress,
+                "currency" to bootstrap.currency,
                 "terraceHappyHourPercent" to bootstrap.terraceHappyHourPercent,
                 "products" to products,
                 "tables" to tables

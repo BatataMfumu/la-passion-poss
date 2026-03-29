@@ -41,11 +41,27 @@ class SyncManager(context: Context) {
             establishmentAddress = json.optJSONObject("settings")
                 ?.optString("address", "L'avenue des aviation Q/ Gare-centrale C/ Gombe")
                 ?: "L'avenue des aviation Q/ Gare-centrale C/ Gombe",
+            currency = json.optJSONObject("settings")?.optString("currency", "CDF") ?: "CDF",
             terraceHappyHourPercent = json.optJSONObject("settings")
                 ?.optInt("terraceHappyHourPercent", 10)
                 ?: 10,
             products = json.optJSONArray("products").toProducts(),
-            tables = json.optJSONArray("tables").toTables()
+            tables = json.optJSONArray("tables").toTables(),
+            users = json.optJSONArray("users").toUsers()
+        )
+    }
+
+    fun login(serverUrl: String, name: String, pin: String): RemoteUser {
+        val response = request(
+            "POST",
+            "$serverUrl/api/login",
+            JSONObject(mapOf("name" to name, "pin" to pin)).toString()
+        )
+        val json = JSONObject(response).optJSONObject("user") ?: JSONObject()
+        return RemoteUser(
+            id = json.optString("id"),
+            name = json.optString("name"),
+            role = json.optString("role")
         )
     }
 
@@ -115,14 +131,28 @@ class SyncManager(context: Context) {
             )
         }
     }
+
+    private fun JSONArray?.toUsers(): List<RemoteUser> {
+        if (this == null) return emptyList()
+        return List(length()) { index ->
+            val item = optJSONObject(index) ?: JSONObject()
+            RemoteUser(
+                id = item.optString("id"),
+                name = item.optString("name"),
+                role = item.optString("role")
+            )
+        }
+    }
 }
 
 data class BootstrapPayload(
     val establishmentName: String,
     val establishmentAddress: String,
+    val currency: String,
     val terraceHappyHourPercent: Int,
     val products: List<RemoteProduct>,
-    val tables: List<RemoteTable>
+    val tables: List<RemoteTable>,
+    val users: List<RemoteUser>
 )
 
 data class RemoteProduct(
@@ -136,6 +166,12 @@ data class RemoteProduct(
 data class RemoteTable(
     val id: String,
     val status: String
+)
+
+data class RemoteUser(
+    val id: String,
+    val name: String,
+    val role: String
 )
 
 data class KitchenSummary(

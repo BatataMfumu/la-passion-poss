@@ -4,7 +4,7 @@ function createDefaultDb() {
     settings: {
       establishmentName: "La Passion",
       address: "L'avenue des aviation Q/ Gare-centrale C/ Gombe",
-      currency: "XOF",
+      currency: "CDF",
       terraceHappyHourPercent: 10,
       printerFooter: "Merci pour votre visite",
       updatedAt: now,
@@ -45,11 +45,23 @@ function sanitizeUsers(users) {
 function buildStats(db) {
   const totalRevenue = (db.orders || []).reduce((sum, order) => sum + Number(order.total || 0), 0);
   const byPaymentMethod = {};
+  const revenueByPaymentMethod = {};
   const topProducts = {};
+  const bySource = { restaurant: 0, terrace: 0 };
+  const revenueBySource = { restaurant: 0, terrace: 0 };
+  const dailyTotals = {};
+  let totalDiscounts = 0;
 
   (db.orders || []).forEach((order) => {
     const paymentMethod = order.paymentMethod || "Inconnu";
     byPaymentMethod[paymentMethod] = (byPaymentMethod[paymentMethod] || 0) + 1;
+    revenueByPaymentMethod[paymentMethod] = (revenueByPaymentMethod[paymentMethod] || 0) + Number(order.total || 0);
+    const source = order.source === "terrace" ? "terrace" : "restaurant";
+    bySource[source] = (bySource[source] || 0) + 1;
+    revenueBySource[source] = (revenueBySource[source] || 0) + Number(order.total || 0);
+    totalDiscounts += Number(order.manualDiscount || 0) + Number(order.happyHourDiscount || 0);
+    const bucket = String(order.printedAt || order.createdAt || "").slice(0, 10) || "Inconnu";
+    dailyTotals[bucket] = (dailyTotals[bucket] || 0) + Number(order.total || 0);
     (order.items || []).forEach((item) => {
       topProducts[item.name] = (topProducts[item.name] || 0) + Number(item.quantity || 0);
     });
@@ -59,6 +71,14 @@ function buildStats(db) {
     totalOrders: (db.orders || []).length,
     totalRevenue,
     byPaymentMethod,
+    revenueByPaymentMethod,
+    bySource,
+    revenueBySource,
+    totalDiscounts,
+    dailyTotals: Object.entries(dailyTotals)
+      .sort((a, b) => String(b[0]).localeCompare(String(a[0])))
+      .slice(0, 7)
+      .map(([date, total]) => ({ date, total })),
     topProducts: Object.entries(topProducts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)

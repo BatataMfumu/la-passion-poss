@@ -37,6 +37,19 @@ function createHandler() {
         return sendJson(res, 200, await storage.getBootstrapData());
       }
 
+      if (url.pathname === "/api/users" && req.method === "GET") {
+        return sendJson(res, 200, await storage.getUsers());
+      }
+
+      if (url.pathname === "/api/login" && req.method === "POST") {
+        const body = await readJsonBody(req);
+        const user = await storage.authenticateUser(body.name, body.pin);
+        if (!user) {
+          return sendJson(res, 401, { error: "Identifiants invalides" });
+        }
+        return sendJson(res, 200, { ok: true, user });
+      }
+
       if (url.pathname === "/api/products") {
         if (req.method === "GET") {
           return sendJson(res, 200, await storage.getProducts());

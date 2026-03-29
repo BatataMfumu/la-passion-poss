@@ -39,6 +39,14 @@
                     android:text="Catalogue, tables, ventes en attente"
                     android:textColor="@color/champagne"
                     android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/currentUserView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/champagne"
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <Button
@@ -97,6 +105,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:text="Envoyer les ventes en attente" />
+
+            <Button
+                android:id="@+id/logoutBtn"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Deconnexion" />
         </LinearLayout>
 
         <LinearLayout

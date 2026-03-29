@@ -58,6 +58,21 @@ function createFileStore() {
     async getProducts() {
       return readDb().products;
     },
+    async getUsers() {
+      return sanitizeUsers(readDb().users);
+    },
+    async authenticateUser(name, pin) {
+      const user = readDb().users.find(
+        (item) =>
+          item.name.toLowerCase() === String(name || "").trim().toLowerCase() &&
+          String(item.pin || "") === String(pin || "")
+      );
+      if (!user) {
+        return null;
+      }
+      const { pin: hiddenPin, ...sanitized } = user;
+      return sanitized;
+    },
     async setProducts(products) {
       assertWritable();
       const db = readDb();

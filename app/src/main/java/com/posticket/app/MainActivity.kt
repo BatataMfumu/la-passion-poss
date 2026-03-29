@@ -29,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var integratedPrinterManager: IntegratedPrinterManager
     private lateinit var syncManager: SyncManager
     private lateinit var localStoreManager: LocalStoreManager
+    private lateinit var authManager: AuthManager
 
     private val cartItems = mutableListOf<CartItem>()
     private val soldQuantities = mutableMapOf<String, Int>()
@@ -36,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private val pendingOrders = mutableListOf<JSONObject>()
     private var establishmentName = "La Passion"
     private var establishmentAddress = "L'avenue des aviation Q/ Gare-centrale C/ Gombe"
+    private var currencyCode = "CDF"
     private var quickProducts = mutableListOf(
         CatalogProduct("Eau minerale", 500, ProductCategory.DRINK),
         CatalogProduct("Soda", 1000, ProductCategory.DRINK),
@@ -67,6 +69,12 @@ class MainActivity : AppCompatActivity() {
         integratedPrinterManager = IntegratedPrinterManager(this)
         syncManager = SyncManager(this)
         localStoreManager = LocalStoreManager(this)
+        authManager = AuthManager(this)
+        if (!intent.getBooleanExtra(EXTRA_AUTO_PRINT_SAMPLE, false) && !authManager.isLoggedIn()) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
+        }
         restoreLocalState()
         configureUi()
         maybeAutoPrintSample()
@@ -80,6 +88,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun configureUi() {
         binding.quantityInput.setText("1")
+        binding.currentUserView.text = authManager.currentUserLabel()
 
         configureModes()
         configurePayments()
@@ -253,7 +262,6 @@ class MainActivity : AppCompatActivity() {
         refreshTableSummary()
         refreshOrderSummary()
         refreshStats()
-        refreshHistory()
     }
 
     private fun refreshTableSummary() {
@@ -306,21 +314,6 @@ class MainActivity : AppCompatActivity() {
                 "Articles vendus: ${soldQuantities.values.sum()}",
                 "References actives: ${soldQuantities.size}"
             ).joinToString("\n")
-        }
-    }
-
-    private fun refreshHistory() {
-        binding.historyView.text = if (orderHistory.isEmpty()) {
-            "Historique local\nAucune commande enregistree."
-        } else {
-            buildList {
-                add("Historique local")
-                orderHistory.take(8).forEach { entry ->
-                    add("${entry.timestamp} | ${entry.label}")
-                    add("${entry.amount} | ${entry.syncStatus}")
-                    add("")
-                }
-            }.joinToString("\n")
         }
     }
 
@@ -425,7 +418,6 @@ class MainActivity : AppCompatActivity() {
     private fun addHistoryEntry(entry: OrderHistoryEntry) {
         orderHistory.add(0, entry)
         saveLocalState()
-        refreshHistory()
     }
 
     private fun markOrderAsSynced(localOrderId: String) {
@@ -485,6 +477,7 @@ class MainActivity : AppCompatActivity() {
         localStoreManager.loadCatalog()?.let { catalog ->
             establishmentName = catalog.optString("establishmentName", establishmentName)
             establishmentAddress = catalog.optString("establishmentAddress", establishmentAddress)
+            currencyCode = catalog.optString("currency", currencyCode)
             terraceHappyHourPercent = catalog.optInt("terraceHappyHourPercent", terraceHappyHourPercent)
             val products = catalog.optJSONArray("products") ?: JSONArray()
             if (products.length() > 0) {
@@ -576,6 +569,7 @@ class MainActivity : AppCompatActivity() {
             mapOf(
                 "establishmentName" to establishmentName,
                 "establishmentAddress" to establishmentAddress,
+                "currency" to currencyCode,
                 "terraceHappyHourPercent" to terraceHappyHourPercent,
                 "products" to products,
                 "tables" to tablesArray
@@ -627,7 +621,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun formatMoney(value: Long): String {
         val reversed = value.toString().reversed().chunked(3).joinToString(" ").reversed()
-        return "$reversed XOF"
+        return "$reversed $currencyCode"
     }
 
     private fun currentDateTime(): String {
@@ -754,17 +748,17 @@ class MainActivity : AppCompatActivity() {
                     add(formatReceiptLine("Date", currentDateTime()))
                     add(receiptDivider())
                     add("Eau minerale")
-                    add(formatReceiptLine("2 x 500 XOF", "1 000 XOF"))
+                    add(formatReceiptLine("2 x 500 CDF", "1 000 CDF"))
                     add("Sandwich")
-                    add(formatReceiptLine("1 x 2 500 XOF", "2 500 XOF"))
+                    add(formatReceiptLine("1 x 2 500 CDF", "2 500 CDF"))
                     add("Cafe")
-                    add(formatReceiptLine("2 x 1 000 XOF", "2 000 XOF"))
+                    add(formatReceiptLine("2 x 1 000 CDF", "2 000 CDF"))
                     add(receiptDivider())
                     add(formatReceiptLine("Paiement", "Mobile Money"))
-                    add(formatReceiptLine("Sous-total", "5 500 XOF"))
-                    add(formatReceiptLine("Remise", "500 XOF"))
+                    add(formatReceiptLine("Sous-total", "5 500 CDF"))
+                    add(formatReceiptLine("Remise", "500 CDF"))
                     add(receiptDivider('='))
-                    add(formatReceiptLine("TOTAL", "5 000 XOF"))
+                    add(formatReceiptLine("TOTAL", "5 000 CDF"))
                     add(receiptDivider('='))
                     add(centerReceiptText("Commande transmise cuisine"))
                     add(centerReceiptText("Merci pour votre visite"))
@@ -885,7 +879,7 @@ class MainActivity : AppCompatActivity() {
         val unitPrice: Long,
         val category: ProductCategory
     ) {
-        fun buttonLabel(): String = "$name\n$unitPrice XOF"
+        fun buttonLabel(): String = "$name\n$unitPrice CDF"
     }
 
     private data class DiningTable(

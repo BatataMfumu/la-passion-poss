@@ -1,15 +1,28 @@
+const AUTH_KEY = "la_passion_admin_session";
+
 const state = {
   settings: null,
   products: [],
   tables: [],
   orders: [],
+  users: [],
   stats: null,
   pollHandle: null,
+  session: loadSession(),
 };
 
 const api = {
   async get(path) {
     const response = await fetch(path);
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  },
+  async post(path, body) {
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   },
@@ -25,14 +38,21 @@ const api = {
 };
 
 async function bootstrap() {
+  if (!state.session) {
+    await hydrateLoginUsers();
+    lockApp("Connectez-vous pour acceder a l'administration.");
+    return;
+  }
+
   try {
     setStatus("Chargement...");
-    const [settings, products, tables, orders, stats] = await Promise.all([
+    const [settings, products, tables, orders, stats, users] = await Promise.all([
       api.get("/api/settings"),
       api.get("/api/products"),
       api.get("/api/tables"),
       api.get("/api/orders"),
       api.get("/api/stats"),
+      api.get("/api/users"),
     ]);
 
     state.settings = settings;
@@ -40,7 +60,9 @@ async function bootstrap() {
     state.tables = tables;
     state.orders = orders.sort(sortOrders);
     state.stats = stats;
+    state.users = users;
     renderAll();
+    unlockApp();
     setStatus("Connecte");
     document.getElementById("lastRefreshView").textContent = new Date().toLocaleString("fr-FR");
   } catch (error) {
@@ -48,21 +70,40 @@ async function bootstrap() {
   }
 }
 
+async function hydrateLoginUsers() {
+  try {
+    state.users = await api.get("/api/users");
+    renderLoginUsers();
+  } catch (error) {
+    document.getElementById("loginStatusView").textContent = `Echec chargement utilisateurs: ${error.message}`;
+  }
+}
+
 function renderAll() {
+  renderSession();
   renderSettings();
   renderStats();
   renderTerraceOverview();
   renderTopProducts();
   renderServiceFlow();
+  renderAccounting();
   renderProducts();
   renderTables();
   renderOrders();
+}
+
+function renderSession() {
+  document.getElementById("sessionBadge").textContent = state.session
+    ? `${state.session.name} (${state.session.role})`
+    : "Session admin non chargee.";
 }
 
 function renderSettings() {
   document.getElementById("establishmentName").value = state.settings.establishmentName || "La Passion";
   document.getElementById("establishmentAddress").value = state.settings.address || "";
   document.getElementById("happyHourPercent").value = state.settings.terraceHappyHourPercent ?? 10;
+  document.getElementById("currencySelect").value = state.settings.currency || "CDF";
+  document.getElementById("currencyBadge").textContent = `Devise: ${state.settings.currency || "CDF"}`;
 }
 
 function renderStats() {
@@ -112,16 +153,16 @@ function renderTerraceOverview() {
 }
 
 function renderTopProducts() {
-  const topProducts = Object.entries(state.stats?.topProducts ?? {}).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const topProducts = Array.isArray(state.stats?.topProducts) ? state.stats.topProducts : [];
   const container = document.getElementById("topProductsList");
 
   container.innerHTML = topProducts.length
     ? topProducts
         .map(
-          ([name, quantity]) => `
+          (product) => `
             <div class="stack-item">
-              <strong>${escapeHtml(name)}</strong>
-              <span>${quantity} ventes</span>
+              <strong>${escapeHtml(product.name)}</strong>
+              <span>${product.quantity} ventes</span>
             </div>
           `
         )
@@ -130,13 +171,12 @@ function renderTopProducts() {
 }
 
 function renderServiceFlow() {
-  const restaurantOrders = state.orders.filter((order) => order.source === "restaurant");
-  const terraceOrders = state.orders.filter((order) => order.source === "terrace");
+  const bySource = state.stats?.bySource || {};
   const cards = [
-    ["Restaurant", restaurantOrders.length],
-    ["Terrasse", terraceOrders.length],
-    ["A envoyer cuisine", restaurantOrders.filter((order) => order.status === "pending").length],
-    ["Servies", restaurantOrders.filter((order) => order.status === "served").length],
+    ["Restaurant", bySource.restaurant ?? 0],
+    ["Terrasse", bySource.terrace ?? 0],
+    ["A envoyer cuisine", state.orders.filter((order) => order.status === "pending").length],
+    ["Servies", state.orders.filter((order) => order.status === "served").length],
   ];
 
   document.getElementById("serviceFlowCards").innerHTML = cards
@@ -149,6 +189,54 @@ function renderServiceFlow() {
       `
     )
     .join("");
+}
+
+function renderAccounting() {
+  const summary = [
+    ["Total encaisse", formatMoney(state.stats?.totalRevenue ?? 0)],
+    ["Total remises", formatMoney(state.stats?.totalDiscounts ?? 0)],
+    ["CA restaurant", formatMoney(state.stats?.revenueBySource?.restaurant ?? 0)],
+    ["CA terrasse", formatMoney(state.stats?.revenueBySource?.terrace ?? 0)],
+  ];
+
+  document.getElementById("accountingSummary").innerHTML = summary
+    .map(
+      ([label, value]) => `
+        <div class="stack-item">
+          <strong>${label}</strong>
+          <span>${value}</span>
+        </div>
+      `
+    )
+    .join("");
+
+  const breakdown = Object.entries(state.stats?.revenueByPaymentMethod || {});
+  document.getElementById("paymentBreakdownList").innerHTML = breakdown.length
+    ? breakdown
+        .map(
+          ([method, total]) => `
+            <div class="stack-item">
+              <strong>${escapeHtml(method)}</strong>
+              <span>${formatMoney(total)}</span>
+            </div>
+          `
+        )
+        .join("")
+    : `<div class="empty-state">Les paiements apparaitront ici apres les premieres ventes.</div>`;
+
+  const dailyTotals = Array.isArray(state.stats?.dailyTotals) ? state.stats.dailyTotals : [];
+  document.getElementById("dailyAccountingList").innerHTML = dailyTotals.length
+    ? dailyTotals
+        .map(
+          (item) => `
+            <div class="mini-card">
+              <strong>${item.date}</strong>
+              <span>${formatMoney(item.total)}</span>
+            </div>
+          `
+        )
+        .join("")
+    : `<div class="empty-state">Le journal recent apparaitra ici.</div>`;
 }
 
 function renderProducts() {
@@ -253,6 +341,7 @@ function renderOrders() {
 }
 
 async function refreshOrdersAndStats() {
+  if (!state.session) return;
   try {
     const [orders, stats] = await Promise.all([api.get("/api/orders"), api.get("/api/stats")]);
     state.orders = orders.sort(sortOrders);
@@ -261,6 +350,7 @@ async function refreshOrdersAndStats() {
     renderTerraceOverview();
     renderTopProducts();
     renderServiceFlow();
+    renderAccounting();
     renderOrders();
     setStatus("Connecte");
     document.getElementById("lastRefreshView").textContent = new Date().toLocaleString("fr-FR");
@@ -274,11 +364,14 @@ function wireEvents() {
   document.getElementById("openKitchenBtn").addEventListener("click", () => {
     window.open("/admin/kitchen.html", "_blank");
   });
+  document.getElementById("logoutBtn").addEventListener("click", logout);
+  document.getElementById("loginBtn").addEventListener("click", attemptLogin);
 
   document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
     state.settings.establishmentName = document.getElementById("establishmentName").value.trim() || "La Passion";
     state.settings.address = document.getElementById("establishmentAddress").value.trim();
     state.settings.terraceHappyHourPercent = Number(document.getElementById("happyHourPercent").value || 0);
+    state.settings.currency = document.getElementById("currencySelect").value || "CDF";
     await api.put("/api/settings", { settings: state.settings });
     setStatus("Parametres sauvegardes");
     await bootstrap();
@@ -345,6 +438,51 @@ function wireEvents() {
   });
 }
 
+function renderLoginUsers() {
+  const select = document.getElementById("loginUserSelect");
+  select.innerHTML = state.users
+    .map((user) => `<option value="${escapeHtml(user.name)}">${escapeHtml(user.name)} (${escapeHtml(user.role)})</option>`)
+    .join("");
+}
+
+async function attemptLogin() {
+  const name = document.getElementById("loginUserSelect").value;
+  const pin = document.getElementById("loginPinInput").value.trim();
+  if (!name || !pin) {
+    document.getElementById("loginStatusView").textContent = "Selectionnez un utilisateur et entrez le PIN.";
+    return;
+  }
+
+  document.getElementById("loginStatusView").textContent = "Connexion en cours...";
+  try {
+    const response = await api.post("/api/login", { name, pin });
+    state.session = response.user;
+    saveSession(state.session);
+    renderSession();
+    unlockApp();
+    await bootstrap();
+  } catch (error) {
+    document.getElementById("loginStatusView").textContent = `Connexion refusee: ${error.message}`;
+  }
+}
+
+function lockApp(message) {
+  document.getElementById("loginOverlay").classList.remove("hidden");
+  document.getElementById("loginStatusView").textContent = message;
+}
+
+function unlockApp() {
+  document.getElementById("loginOverlay").classList.add("hidden");
+}
+
+function logout() {
+  state.session = null;
+  clearSession();
+  setStatus("Deconnecte");
+  renderSession();
+  lockApp("Session fermee. Reconnectez-vous.");
+}
+
 function startPolling() {
   if (state.pollHandle) {
     clearInterval(state.pollHandle);
@@ -387,7 +525,24 @@ function labelForTableStatus(status) {
 }
 
 function formatMoney(value) {
-  return `${Number(value || 0).toLocaleString("fr-FR")} XOF`;
+  const currency = state.settings?.currency || "CDF";
+  return `${Number(value || 0).toLocaleString("fr-FR")} ${currency}`;
+}
+
+function loadSession() {
+  try {
+    return JSON.parse(window.localStorage.getItem(AUTH_KEY) || "null");
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveSession(session) {
+  window.localStorage.setItem(AUTH_KEY, JSON.stringify(session));
+}
+
+function clearSession() {
+  window.localStorage.removeItem(AUTH_KEY);
 }
 
 function escapeHtml(text) {
